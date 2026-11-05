@@ -68,6 +68,20 @@ Billing > Credits : contrôle ce qui a été crédité. N'oublie pas de supprime
 
 ---
 
+## Qualité du briefing : avant / après
+Un petit modèle (Nova 2 Lite) résume bien, mais il faut le cadrer et vérifier ses sorties **contre le texte complet** qu'il a reçu (titre + résumé), pas seulement contre les titres.
+
+| Avant | Après |
+|---|---|
+| ![avant](docs/screenshots/10-briefing-avant.png) | ![après](docs/screenshots/11-briefing-apres.png) |
+
+Ce qui a changé, dans l'ordre :
+- **Filtre en code, avant l'IA** : les articles de type « stocks making the biggest moves » sont écartés, car le modèle ignorait l'instruction négative du prompt (aucune information utile, mais des puces creuses).
+- **Chiffres** : le prompt impose de garder leur périmètre et leur origine (« la CGT a recensé… », « hors Paris ») et de donner les deux décomptes quand deux sources divergent.
+- **Pas de doublons** entre sections, pas de fonction ni de prévision inventées pour une personne.
+- **Sources** : seulement les articles réellement cités.
+- Limite connue : les « live » de presse sont réécrits en continu, donc le titre d'une source peut changer entre deux exécutions.
+
 ## Coûts attendus
 Un briefing = quelques milliers de tokens avec Nova Lite, soit des centimes par mois. Lambda, EventBridge et SES restent dans les offres gratuites à ce volume. Le seul risque est de laisser tourner autre chose (EC2, RDS).
 
