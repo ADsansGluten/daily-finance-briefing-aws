@@ -60,12 +60,15 @@ SYSTEM_PROMPT = (
     "1) utilise UNIQUEMENT les articles fournis et n'écris aucun fait qui n'apparaît pas "
     "explicitement dans le titre ou le résumé de l'article cité ; "
     "2) recopie les chiffres exactement comme dans l'article, sans les arrondir ni les modifier, et conserve "
-    "leur périmètre et leur origine (par exemple « hors Paris », « selon l'entourage du ministre ») ; "
+    "leur périmètre et leur origine : quand un chiffre figure dans un titre, reprends la proposition entière "
+    "qui l'entoure (par exemple « 270 000 manifestants hors Paris, selon l'entourage du ministre ») et "
+    "n'ajoute aucune cause ou motif absent du titre ; "
     "3) cite chaque fait par le numéro de sa source entre crochets, par exemple [3] ; "
     "4) pour une action ou un indice, indique le sens du mouvement (hausse ou baisse) et le "
     "pourcentage si l'article les donne, sinon ne le mentionne pas ; "
     "5) ne cite une personne ou une institution que si tu peux dire ce qu'elle a déclaré ou décidé, sans "
-    "ajouter de fonction ou de titre qui n'apparaît pas dans l'article ; "
+    "ajouter de fonction ou de titre qui n'apparaît pas dans l'article, et sans transformer une question ou "
+    "une analyse en prévision (pas de « probablement », « devrait » si l'article ne l'écrit pas) ; "
     "6) classe les informations en priorité par intérêt pour la France et la zone euro, puis les "
     "États-Unis et le Royaume-Uni ; "
     "7) reste factuel et neutre, sans conseil d'investissement. "
@@ -232,10 +235,11 @@ def render_body(summary_text, items):
     if in_list:
         parts.append("</ul>")
 
+    cited = {int(n) for n in re.findall(r"\[(\d+)\]", summary_text)}
     sources = "".join(
         f"<li style='margin:3px 0'>[{n}] {html.escape(i['source'])} - "
         f"<a href='{html.escape(i['link'], quote=True)}'>{html.escape(i['title'])}</a></li>"
-        for n, i in enumerate(items, 1) if i["link"]
+        for n, i in enumerate(items, 1) if i["link"] and (not cited or n in cited)
     )
     parts.append("<h3 style='margin:26px 0 6px;color:#4c1d95'>Sources</h3>"
                  f"<ol style='padding-left:0;list-style:none;font-size:13px;color:#555'>{sources}</ol>")
