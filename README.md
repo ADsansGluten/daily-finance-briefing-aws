@@ -2,7 +2,9 @@
 
 Chaque matin en semaine, un e-mail résume l'actualité financière (flux RSS publics, résumé par Amazon Bedrock, sources citées). La dernière version est aussi consultable sur une page web.
 
-![Architecture](docs/architecture.svg)
+![Architecture](docs/architecture.png)
+
+[Voir l'animation de l'architecture (vidéo, 21 s)](docs/architecture-animation.mp4) · [Version PDF](docs/architecture.pdf)
 
 Comment ça marche :
 1. **EventBridge Scheduler** déclenche la Lambda `daily-finance-briefing` à 7h00 (Europe/Paris), du lundi au vendredi.
