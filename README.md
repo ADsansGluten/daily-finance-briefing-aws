@@ -8,7 +8,7 @@ EventBridge Scheduler (7h00, lun-ven)
         v
   Lambda "daily-finance-briefing"
     1. lit les flux RSS (stdlib)
-    2. résume avec Bedrock (Nova Lite)
+    2. résume avec Bedrock (Nova 2 Lite, profil EU)
     3. écrit la page dans S3 (briefings/)
     4. envoie l'e-mail via SES
                                    S3 --> Lambda "briefing-viewer" --> Function URL (page web)
@@ -33,8 +33,10 @@ S3 > Create bucket > nom unique, par exemple `briefing-finance-adrien-2026` > r�
 Amazon SES > Identities > Create identity > *Email address* > ton adresse > clique le lien reçu par e-mail. Le compte SES est en **sandbox** : expéditeur et destinataire doivent être vérifiés. Utilise la même adresse pour les deux.
 
 ## Étape 4 - Tester Bedrock dans le playground (10 min)
-Bedrock > Playgrounds > Chat > Select model > Amazon > **Nova Lite** > envoie « Résume en une phrase ce qu'est la volatilité ». *(Activité « Bedrock » du widget Explore AWS.)*
-Ensuite : Bedrock > *Cross-region inference* (ou Inference profiles) : repère l'identifiant du profil **EU de Nova Lite** (`eu.amazon.nova-lite-v1:0`). Si le nom diffère, tu le mettras dans la variable `MODEL_ID` à l'étape 5.
+Bedrock > Playgrounds > Chat > Select model > Amazon > **EU Amazon Nova 2 Lite** > envoie « Résume en une phrase ce qu'est la volatilité ». *(Activité « Bedrock » du widget Explore AWS.)*
+Ensuite : Bedrock > *Cross-region inference* (ou Inference profiles) : repère l'identifiant du profil **EU de Nova 2 Lite** (`eu.amazon.nova-2-lite-v1:0`). Si le nom diffère, tu le mettras dans la variable `MODEL_ID` à l'étape 5.
+
+> **Compte neuf :** Bedrock peut répondre `AccessDeniedException ... account is currently being verified`. La vérification prend normalement moins de 2 heures. En attendant, teste la Lambda avec `{"no_ai": true}` (étape 6) : elle n'appelle pas Bedrock.
 
 ## Étape 5 - Lambda du briefing (1 h)
 1. Lambda > Create function > *Author from scratch* > nom `daily-finance-briefing` > Runtime **Python 3.12** > *Create a new role with basic Lambda permissions*.
@@ -44,7 +46,7 @@ Ensuite : Bedrock > *Cross-region inference* (ou Inference profiles) : repère l
 5. Configuration > Permissions > clique le nom du rôle > Add permissions > Create inline policy > onglet JSON > colle `iam-policy.json` **en remplaçant le nom du bucket** > nom `briefing-policy`.
 
 ## Étape 6 - Premier test sans e-mail (20 min)
-Onglet Test > événement `{"dry_run": true}` > Test. Attendu : `"status": "ok"` et un nombre d'articles. Ouvre S3 > `briefings/latest.html` pour voir le résultat. En cas d'erreur : CloudWatch > Log groups > `/aws/lambda/daily-finance-briefing`.
+Onglet Test > événement `{"dry_run": true}` > Test. Pour tester sans Bedrock : `{"dry_run": true, "no_ai": true}`. Attendu : `"status": "ok"` et un nombre d'articles. Ouvre S3 > `briefings/latest.html` pour voir le résultat. En cas d'erreur : CloudWatch > Log groups > `/aws/lambda/daily-finance-briefing`.
 Erreurs courantes :
 - `AccessDeniedException` sur Bedrock : modèle non autorisé ou `MODEL_ID` incorrect (voir étape 4).
 - `Flux ignoré` dans les logs : un flux RSS ne répond pas, ce n'est pas bloquant tant qu'il en reste un.

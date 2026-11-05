@@ -11,12 +11,16 @@ Variables d'environnement
   BUCKET      (obligatoire) nom du bucket S3
   SENDER      (obligatoire) adresse expéditrice, vérifiée dans SES
   RECIPIENT   (obligatoire) adresse destinataire (vérifiée aussi tant que SES est en sandbox)
-  MODEL_ID    (optionnel)   modèle ou profil d'inférence Bedrock, défaut : eu.amazon.nova-lite-v1:0
+  MODEL_ID    (optionnel)   modèle ou profil d'inférence Bedrock, défaut : eu.amazon.nova-2-lite-v1:0
+                          (à vérifier dans Bedrock > Profils d'inférence)
   FEEDS       (optionnel)   "Nom|url;Nom|url;..." pour remplacer les flux par défaut
   MAX_ITEMS   (optionnel)   nombre d'articles envoyés au modèle, défaut 24
   MAX_AGE_H   (optionnel)   ancienneté maximale des articles en heures, défaut 30
 
-Événement de test : {"dry_run": true} -> tout est exécuté sauf l'envoi de l'e-mail.
+Événements de test :
+  {"dry_run": true}  -> tout est exécuté sauf l'envoi de l'e-mail
+  {"no_ai": true}    -> n'appelle pas Bedrock (résumé simplifié à partir des titres), utile tant que
+                        le compte AWS est en cours de vérification ou pour tester les flux RSS
 """
 import html
 import json
@@ -174,8 +178,15 @@ def summarize(items, date_label, model_id):
         messages=[{"role": "user", "content": [{"text": PROMPT_TEMPLATE.format(date=date_label, articles=articles)}]}],
         inferenceConfig={"maxTokens": 1200, "temperature": 0.2},
     )
-    text = response["output"]["message"]["content"][0]["text"]
+    blocks = response["output"]["message"]["content"]
+    text = "".join(block["text"] for block in blocks if "text" in block).strip()
     return text, response.get("usage", {})
+
+
+def fallback_summary(items):
+    """Résumé minimal sans IA : les titres les plus récents, avec leur numéro de source."""
+    bullets = "\n".join(f"- {i['title']} [{n}]" for n, i in enumerate(items[:6], 1))
+    return f"## À retenir\n{bullets}\n## Marchés et entreprises\n- Résumé IA non généré (mode sans IA)."
 
 
 # --------------------------------------------------------------------------- rendu
@@ -243,9 +254,10 @@ def _load_feeds():
 def lambda_handler(event, context):
     event = event or {}
     dry_run = bool(event.get("dry_run", False))
+    no_ai = bool(event.get("no_ai", False))
 
     bucket = os.environ["BUCKET"]
-    model_id = os.environ.get("MODEL_ID", "eu.amazon.nova-lite-v1:0")
+    model_id = os.environ.get("MODEL_ID", "eu.amazon.nova-2-lite-v1:0")
     max_items = int(os.environ.get("MAX_ITEMS", "24"))
     max_age_h = int(os.environ.get("MAX_AGE_H", "30"))
 
@@ -258,7 +270,10 @@ def lambda_handler(event, context):
         logger.error("Aucun article récupéré : vérifier les flux dans les logs.")
         return {"status": "no_articles"}
 
-    summary, usage = summarize(items, date_label, model_id)
+    if no_ai:
+        summary, usage = fallback_summary(items), {}
+    else:
+        summary, usage = summarize(items, date_label, model_id)
     title = f"Briefing finance - {date_label}"
     page = render_page(title, render_body(summary, items))
 
@@ -283,7 +298,7 @@ def lambda_handler(event, context):
             }},
         )
 
-    result = {"status": "ok", "dry_run": dry_run, "articles": len(items),
+    result = {"status": "ok", "dry_run": dry_run, "no_ai": no_ai, "articles": len(items),
               "input_tokens": usage.get("inputTokens"), "output_tokens": usage.get("outputTokens")}
     logger.info(json.dumps(result))
     return result

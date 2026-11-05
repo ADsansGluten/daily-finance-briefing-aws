@@ -12,7 +12,7 @@ class FakeClient:
     def converse(self, **kw):
         calls["bedrock"].append(kw)
         text = "## À retenir\n- **Le CAC 40** progresse [1]\n- La BCE maintient ses taux [2]\n## Marchés et entreprises\n- Rien de notable.\n"
-        return {"output": {"message": {"content": [{"text": text}]}},
+        return {"output": {"message": {"content": [{"reasoningContent": {"x": 1}}, {"text": text}]}},
                 "usage": {"inputTokens": 900, "outputTokens": 120}}
 fake = types.ModuleType("boto3"); fake.client = lambda kind, *a, **k: FakeClient(kind)
 sys.modules["boto3"] = fake
@@ -45,6 +45,9 @@ with mock.patch("urllib.request.urlopen", fake_urlopen):
     r_dry = lf.lambda_handler({"dry_run": True}, None)
     assert r_dry["articles"] == 2, r_dry          # doublon + vieil article éliminés
     assert not calls["ses"], "dry_run ne doit pas envoyer d'e-mail"
+    n_bedrock = len(calls["bedrock"])
+    r_noai = lf.lambda_handler({"dry_run": True, "no_ai": True}, None)
+    assert r_noai["no_ai"] and len(calls["bedrock"]) == n_bedrock, "no_ai ne doit pas appeler Bedrock"
     r = lf.lambda_handler({}, None)
 assert len(calls["ses"]) == 1
 body = calls["ses"][0]["Content"]["Simple"]["Body"]["Html"]["Data"]
