@@ -54,14 +54,24 @@ Erreurs courantes :
 ## Étape 7 - Vrai test avec e-mail (10 min)
 Relance le test avec `{}`. Tu dois recevoir l'e-mail (regarde les spams).
 
+Note : Outlook affiche « Non vérifié » car l'expéditeur est une adresse e-mail vérifiée dans SES et non un domaine à soi (SPF/DKIM alignés). Le message arrive bien en boîte de réception ; avec un domaine personnel, l'avertissement disparaîtrait.
+
 ## Étape 8 - Planification (30 min)
 EventBridge > Scheduler > Create schedule > *Recurring* > *Cron-based* : `0 7 ? * MON-FRI *` > fuseau **Europe/Paris** > cible *AWS Lambda* > `daily-finance-briefing` > laisse créer le rôle d'exécution. Pour tester sans attendre, mets temporairement une heure dans 5 minutes.
 
+![planification](docs/screenshots/12-eventbridge-planification.png)
+
+Attention : dans le champ cron, une des deux cases « jour » doit valoir `?` (jour du mois `?` avec `MON-FRI`), sinon l'expression est refusée.
+
 ## Étape 9 - Page web publique avec Function URL (45 min)
-1. Lambda > Create function `briefing-viewer` > Python 3.12 > colle `viewer.py` > Deploy > variable `BUCKET`.
-2. Ajoute au rôle de cette fonction une politique inline avec seulement `s3:GetObject` sur `arn:aws:s3:::TON-BUCKET/briefings/*`.
+1. Lambda > Create function `briefing-viewer` > Python 3.14 > colle `viewer.py` > Deploy > variable `BUCKET`.
+2. Ajoute au rôle de cette fonction une politique inline avec seulement `s3:GetObject` sur `arn:aws:s3:::TON-BUCKET/briefings/*` (la fonction est publique : elle ne doit pas réutiliser le rôle du briefing, qui peut envoyer des e-mails et appeler Bedrock).
+
+![rôle du viewer](docs/screenshots/13-iam-role-viewer.png)
 3. Configuration > Function URL > Create > Auth type **NONE** > Save. Ouvre l'URL : tu vois le dernier briefing. *(Activité « Lambda » du widget Explore AWS.)*
 La page est publique : n'y mets rien de privé.
+
+![page publique](docs/screenshots/14-page-web-publique.png)
 
 ## Étape 10 - Vérifier les crédits et nettoyer
 Billing > Credits : contrôle ce qui a été crédité. N'oublie pas de supprimer tout ce que tu crées pour les activités EC2 ou RDS.
