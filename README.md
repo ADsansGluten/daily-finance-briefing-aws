@@ -2,6 +2,8 @@
 
 Chaque matin en semaine, un e-mail résume l'actualité financière (flux RSS publics, résumé par Amazon Bedrock, sources citées). La dernière version est aussi consultable sur une page web.
 
+![Architecture](docs/architecture.svg)
+
 ```
 EventBridge Scheduler (7h00, lun-ven)
         |
