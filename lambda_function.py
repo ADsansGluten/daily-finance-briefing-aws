@@ -41,7 +41,7 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_FEEDS = [
     ("Le Monde Économie", "https://www.lemonde.fr/economie/rss_full.xml"),
-    ("Yahoo Finance", "https://finance.yahoo.com/news/rssindex"),
+    ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
     ("CNBC Finance", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664"),
     ("BCE", "https://www.ecb.europa.eu/rss/press.html"),
 ]
