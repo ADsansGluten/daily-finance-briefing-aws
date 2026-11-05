@@ -4,18 +4,12 @@ Chaque matin en semaine, un e-mail résume l'actualité financière (flux RSS pu
 
 ![Architecture](docs/architecture.svg)
 
-```
-EventBridge Scheduler (7h00, lun-ven)
-        |
-        v
-  Lambda "daily-finance-briefing"
-    1. lit les flux RSS (stdlib)
-    2. résume avec Bedrock (Nova 2 Lite, profil EU)
-    3. écrit la page dans S3 (briefings/)
-    4. envoie l'e-mail via SES
-                                   S3 --> Lambda "briefing-viewer" --> Function URL (page web)
-Budgets + CloudWatch : coûts et logs
-```
+Comment ça marche :
+1. **EventBridge Scheduler** déclenche la Lambda `daily-finance-briefing` à 7h00 (Europe/Paris), du lundi au vendredi.
+2. La Lambda lit les flux RSS publics (bibliothèque standard), écarte les articles sans information, puis demande à **Amazon Bedrock** (Nova 2 Lite, profil d'inférence EU) un résumé en français avec sources citées.
+3. Elle écrit la page dans **S3** (`briefings/`) et envoie l'e-mail via **SES**, avec un lien vers la page web.
+4. La Lambda `briefing-viewer` (Function URL, rôle IAM minimal en lecture S3) sert le dernier briefing.
+5. **CloudWatch** surveille les erreurs de la Lambda et prévient par e-mail via **SNS**. **Budgets** surveille les coûts.
 
 **Région à utiliser partout : Europe (Irlande) `eu-west-1`.** (Bedrock, SES et le profil d'inférence `eu.` y sont disponibles ; vérifie que la région affichée en haut à droite de la console reste la même à chaque étape.)
 
