@@ -176,8 +176,10 @@ def summarize(items, date_label, model_id):
         modelId=model_id,
         system=[{"text": SYSTEM_PROMPT}],
         messages=[{"role": "user", "content": [{"text": PROMPT_TEMPLATE.format(date=date_label, articles=articles)}]}],
-        inferenceConfig={"maxTokens": 1200, "temperature": 0.2},
+        inferenceConfig={"maxTokens": 2500, "temperature": 0.2},  # marge : Nova 2 Lite peut dépenser des tokens en raisonnement
     )
+    if response.get("stopReason") == "max_tokens":
+        logger.warning("Réponse tronquée (max_tokens) : augmenter maxTokens.")
     blocks = response["output"]["message"]["content"]
     text = "".join(block["text"] for block in blocks if "text" in block).strip()
     return text, response.get("usage", {})
