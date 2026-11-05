@@ -50,7 +50,13 @@ with mock.patch("urllib.request.urlopen", fake_urlopen):
     r_noai = lf.lambda_handler({"dry_run": True, "no_ai": True}, None)
     assert r_noai["no_ai"] and len(calls["bedrock"]) == n_bedrock, "no_ai ne doit pas appeler Bedrock"
     r = lf.lambda_handler({}, None)
-assert len(calls["ses"]) == 1
+    os.environ["PAGE_URL"] = "https://page.example/briefing"
+    lf.lambda_handler({}, None)
+assert len(calls["ses"]) == 2
+assert "page.example" not in calls["ses"][0]["Content"]["Simple"]["Body"]["Html"]["Data"], "sans PAGE_URL, pas de lien"
+second = calls["ses"][1]["Content"]["Simple"]["Body"]
+assert "https://page.example/briefing" in second["Html"]["Data"] and "https://page.example/briefing" in second["Text"]["Data"]
+assert not any("page.example" in k for k in calls["s3"]), "le lien ne doit pas être dans la page S3"
 body = calls["ses"][0]["Content"]["Simple"]["Body"]["Html"]["Data"]
 assert "<h3" in body and "<li" in body and "**" not in body and "https://ex.fr/2" in body
 assert "Le CAC 40" in calls["bedrock"][0]["messages"][0]["content"][0]["text"]

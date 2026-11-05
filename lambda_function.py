@@ -16,6 +16,7 @@ Variables d'environnement
   FEEDS       (optionnel)   "Nom|url;Nom|url;..." pour remplacer les flux par défaut
   MAX_ITEMS   (optionnel)   nombre d'articles envoyés au modèle, défaut 24
   MAX_AGE_H   (optionnel)   ancienneté maximale des articles en heures, défaut 30
+  PAGE_URL    (optionnel)   URL de la page web du dernier briefing, ajoutée à la fin de l'e-mail
   EXCLUDE_REGEX (optionnel) expression régulière : les articles dont le titre correspond sont écartés
                             (défaut : listes de valeurs « stocks making the biggest moves »)
 
@@ -314,13 +315,20 @@ def lambda_handler(event, context):
     )
 
     if not dry_run:
+        page_url = os.environ.get("PAGE_URL", "").strip()
+        email_html, email_text = page, summary
+        if page_url:
+            link = (f"<p style='margin-top:18px;font-size:14px'>Voir ce briefing en ligne : "
+                    f"<a href='{html.escape(page_url, quote=True)}'>{html.escape(page_url)}</a></p>")
+            email_html = page.replace("</body>", link + "</body>", 1)
+            email_text = f"{summary}\n\nVoir ce briefing en ligne : {page_url}"
         ses.send_email(
             FromEmailAddress=os.environ["SENDER"],
             Destination={"ToAddresses": [os.environ["RECIPIENT"]]},
             Content={"Simple": {
                 "Subject": {"Data": title, "Charset": "UTF-8"},
-                "Body": {"Html": {"Data": page, "Charset": "UTF-8"},
-                         "Text": {"Data": summary, "Charset": "UTF-8"}},
+                "Body": {"Html": {"Data": email_html, "Charset": "UTF-8"},
+                         "Text": {"Data": email_text, "Charset": "UTF-8"}},
             }},
         )
 
