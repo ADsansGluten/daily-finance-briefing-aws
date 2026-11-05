@@ -80,6 +80,16 @@ Billing > Credits : contrôle ce qui a été crédité. N'oublie pas de supprime
 
 ---
 
+## Étape 11 - Alerte en cas d'échec (SNS + CloudWatch)
+Sans alerte, un briefing qui plante ne se remarque que parce que l'e-mail n'arrive pas.
+1. **SNS** > Rubriques > Créer une rubrique, type **Standard**, nom `alertes-briefing`. Crée un abonnement de protocole **E-mail** (adresse de messagerie) vers ton adresse, puis clique sur le lien de confirmation reçu par e-mail (statut **Confirmé**).
+2. **CloudWatch** > Alarmes > Créer une alarme > métrique `AWS/Lambda` > `Errors` de `daily-finance-briefing`.
+3. Réglages importants : statistique **Somme**, période 5 minutes, seuil statique **supérieur ou égal à 1**, 1 point de données sur 1, données manquantes traitées comme **correct (non violantes)** : la Lambda ne tourne qu'une fois par jour, sans cela l'alarme resterait en « Données insuffisantes ».
+4. Action : état **En alarme** > rubrique SNS `alertes-briefing`. Nom : `briefing-lambda-erreurs`.
+5. **Test sans rien casser** : dans la Lambda, crée un événement de test `["erreur volontaire"]` (une liste au lieu d'un objet) : la fonction plante, l'alarme passe en rouge et l'e-mail d'alerte arrive en quelques minutes. Relancer un test normal remet l'alarme à OK.
+
+![alerte CloudWatch](docs/screenshots/15-alerte-cloudwatch.png)
+
 ## Qualité du briefing : avant / après
 Un petit modèle (Nova 2 Lite) résume bien, mais il faut le cadrer et vérifier ses sorties **contre le texte complet** qu'il a reçu (titre + résumé), pas seulement contre les titres.
 
@@ -100,6 +110,6 @@ Un briefing = quelques milliers de tokens avec Nova Lite, soit des centimes par 
 ## Pour aller plus loin (v2)
 - Remplacer les politiques `Resource: "*"` (Bedrock, SES) par des ressources précises.
 - Décrire toute l'infrastructure avec Terraform ou AWS SAM.
-- Ajouter une alerte CloudWatch si la Lambda échoue.
+- Ajouter une 2e alarme si le briefing ne tourne pas du tout (aucune invocation entre 7h et 8h).
 - Brancher le résumé quotidien dans ton portfolio.
 - Réutiliser les JSON de `briefings/` comme source pour le projet or.
