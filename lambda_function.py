@@ -226,42 +226,47 @@ def render_body(summary_text, items):
             if in_list:
                 parts.append("</ul>")
                 in_list = False
-            parts.append(f"<h3 style='margin:22px 0 6px;color:#4c1d95'>{html.escape(line.lstrip('# ').strip())}</h3>")
+            parts.append(f"<h3 style='margin:30px 0 8px;font-size:19px;font-weight:600;letter-spacing:-0.01em;color:#1d1d1f'>{html.escape(line.lstrip('# ').strip())}</h3>")
         elif line[:2] in ("- ", "* ") or line.startswith("• "):
             if not in_list:
-                parts.append("<ul style='padding-left:20px;margin:0'>")
+                parts.append("<ul style='padding-left:20px;margin:0;font-size:16px;line-height:1.5'>")
                 in_list = True
-            parts.append(f"<li style='margin:6px 0'>{html.escape(line[2:].strip())}</li>")
+            parts.append(f"<li style='margin:8px 0'>{html.escape(line[2:].strip())}</li>")
         else:
             if in_list:
                 parts.append("</ul>")
                 in_list = False
-            parts.append(f"<p>{html.escape(line)}</p>")
+            parts.append(f"<p style='margin:8px 0;color:#6e6e73'>{html.escape(line)}</p>")
     if in_list:
         parts.append("</ul>")
 
     cited = {int(n) for n in re.findall(r"\[(\d+)\]", summary_text)}
     sources = "".join(
         f"<li style='margin:3px 0'>[{n}] {html.escape(i['source'])} - "
-        f"<a href='{html.escape(i['link'], quote=True)}'>{html.escape(i['title'])}</a></li>"
+        f"<a href='{html.escape(i['link'], quote=True)}' style='color:#0066cc;text-decoration:none'>{html.escape(i['title'])}</a></li>"
         for n, i in enumerate(items, 1) if i["link"] and (not cited or n in cited)
     )
-    parts.append("<h3 style='margin:26px 0 6px;color:#4c1d95'>Sources</h3>"
-                 f"<ol style='padding-left:0;list-style:none;font-size:13px;color:#555'>{sources}</ol>")
+    parts.append("<h3 style='margin:34px 0 8px;font-size:19px;font-weight:600;letter-spacing:-0.01em;color:#1d1d1f'>Sources</h3>"
+                 f"<ol style='padding-left:0;margin:0;list-style:none;font-size:13px;line-height:1.45;color:#6e6e73'>{sources}</ol>")
     return "".join(parts)
 
 
 def render_page(title, body):
+    font = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif"
     return (
         "<!doctype html><html lang='fr'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<meta name='color-scheme' content='light only'><meta name='supported-color-schemes' content='light only'>"
         f"<title>{html.escape(title)}</title></head>"
-        "<body style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:680px;"
-        "margin:32px auto;padding:0 16px;line-height:1.5;color:#1f2937\">"
-        f"<h1 style='font-size:22px;margin-bottom:0'>{html.escape(title)}</h1>"
+        f"<body style=\"margin:0;padding:24px 12px;background:#f5f5f7;font-family:{font};color:#1d1d1f;"
+        "-webkit-font-smoothing:antialiased\">"
+        "<div style='max-width:680px;margin:0 auto;background:#ffffff;border-radius:18px;padding:30px 30px 24px;"
+        "box-shadow:0 1px 4px rgba(0,0,0,0.06)'>"
+        f"<h1 style='font-size:26px;font-weight:600;letter-spacing:-0.02em;line-height:1.2;margin:0'>{html.escape(title)}</h1>"
         f"{body}"
-        "<p style='margin-top:30px;font-size:12px;color:#888'>Résumé généré par IA à partir de flux "
-        "publics. Ne constitue pas un conseil en investissement.</p></body></html>"
+        "<p style='margin:30px 0 0;padding-top:14px;border-top:1px solid #e5e5ea;font-size:12px;color:#86868b'>"
+        "Résumé généré par IA à partir de flux publics. Ne constitue pas un conseil en investissement.</p>"
+        "</div></body></html>"
     )
 
 
@@ -318,8 +323,9 @@ def lambda_handler(event, context):
         page_url = os.environ.get("PAGE_URL", "").strip()
         email_html, email_text = page, summary
         if page_url:
-            link = (f"<p style='margin-top:18px;font-size:14px'>Voir ce briefing en ligne : "
-                    f"<a href='{html.escape(page_url, quote=True)}'>{html.escape(page_url)}</a></p>")
+            link = (f"<p style='margin:14px auto 0;max-width:680px;font-size:13px;color:#6e6e73;text-align:center'>"
+                    f"Voir ce briefing en ligne : <a href='{html.escape(page_url, quote=True)}' "
+                    f"style='color:#0066cc;text-decoration:none'>{html.escape(page_url)}</a></p>")
             email_html = page.replace("</body>", link + "</body>", 1)
             email_text = f"{summary}\n\nVoir ce briefing en ligne : {page_url}"
         ses.send_email(
