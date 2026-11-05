@@ -24,6 +24,7 @@ now = datetime.now(timezone.utc)
 rss = f"""<?xml version="1.0"?><rss version="2.0"><channel>
 <item><title>Le CAC 40 progresse</title><description>&lt;p&gt;Séance <b>positive</b>&lt;/p&gt;</description><link>https://ex.fr/1</link><pubDate>{format_datetime(now - timedelta(hours=2))}</pubDate></item>
 <item><title>Le CAC 40 progresse</title><description>doublon</description><link>https://ex.fr/1b</link><pubDate>{format_datetime(now - timedelta(hours=3))}</pubDate></item>
+<item><title>Stocks making the biggest moves premarket: A, B &amp; more</title><description>liste</description><link>https://ex.fr/stocks</link><pubDate>{format_datetime(now - timedelta(hours=1))}</pubDate></item>
 <item><title>Vieil article</title><description>trop ancien</description><link>https://ex.fr/old</link><pubDate>{format_datetime(now - timedelta(hours=90))}</pubDate></item>
 </channel></rss>"""
 atom = f"""<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">

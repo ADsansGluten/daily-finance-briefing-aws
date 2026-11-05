@@ -16,6 +16,8 @@ Variables d'environnement
   FEEDS       (optionnel)   "Nom|url;Nom|url;..." pour remplacer les flux par défaut
   MAX_ITEMS   (optionnel)   nombre d'articles envoyés au modèle, défaut 24
   MAX_AGE_H   (optionnel)   ancienneté maximale des articles en heures, défaut 30
+  EXCLUDE_REGEX (optionnel) expression régulière : les articles dont le titre correspond sont écartés
+                            (défaut : listes de valeurs « stocks making the biggest moves »)
 
 Événements de test :
   {"dry_run": true}  -> tout est exécuté sauf l'envoi de l'e-mail
@@ -46,6 +48,8 @@ DEFAULT_FEEDS = [
     ("BCE", "https://www.ecb.europa.eu/rss/press.html"),
 ]
 
+DEFAULT_EXCLUDE = r"stocks making|biggest moves|stocks to watch"
+
 MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
         "août", "septembre", "octobre", "novembre", "décembre"]
 JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
@@ -55,11 +59,13 @@ SYSTEM_PROMPT = (
     "étudiant en data et IA qui s'intéresse aux marchés. Règles strictes : "
     "1) utilise UNIQUEMENT les articles fournis et n'écris aucun fait qui n'apparaît pas "
     "explicitement dans le titre ou le résumé de l'article cité ; "
-    "2) recopie les chiffres exactement comme dans l'article, sans les arrondir ni les modifier ; "
+    "2) recopie les chiffres exactement comme dans l'article, sans les arrondir ni les modifier, et conserve "
+    "leur périmètre et leur origine (par exemple « hors Paris », « selon l'entourage du ministre ») ; "
     "3) cite chaque fait par le numéro de sa source entre crochets, par exemple [3] ; "
     "4) pour une action ou un indice, indique le sens du mouvement (hausse ou baisse) et le "
     "pourcentage si l'article les donne, sinon ne le mentionne pas ; "
-    "5) ne cite une personne ou une institution que si tu peux dire ce qu'elle a déclaré ou décidé ; "
+    "5) ne cite une personne ou une institution que si tu peux dire ce qu'elle a déclaré ou décidé, sans "
+    "ajouter de fonction ou de titre qui n'apparaît pas dans l'article ; "
     "6) classe les informations en priorité par intérêt pour la France et la zone euro, puis les "
     "États-Unis et le Royaume-Uni ; "
     "7) reste factuel et neutre, sans conseil d'investissement. "
@@ -144,7 +150,8 @@ def fetch_feed(source, url, timeout=10):
 
 
 def collect(feeds, max_age_h, max_items):
-    """Récupère, filtre par âge, déduplique et équilibre les sources."""
+    """Récupère, filtre par âge et par titre, déduplique et équilibre les sources."""
+    exclude = re.compile(os.environ.get("EXCLUDE_REGEX", DEFAULT_EXCLUDE), re.IGNORECASE)
     oldest = datetime.now(timezone.utc) - timedelta(hours=max_age_h)
     per_source = max(1, math.ceil(max_items / max(1, len(feeds))))
     far_past = datetime.min.replace(tzinfo=timezone.utc)
@@ -156,7 +163,9 @@ def collect(feeds, max_age_h, max_items):
         except Exception as exc:  # un flux en panne ne doit pas bloquer le briefing
             logger.warning("Flux ignoré (%s) : %s", source, exc)
             continue
-        fetched = [i for i in fetched if i["title"] and (i["date"] is None or i["date"] >= oldest)]
+        fetched = [i for i in fetched
+                   if i["title"] and not exclude.search(i["title"])
+                   and (i["date"] is None or i["date"] >= oldest)]
         fetched.sort(key=lambda i: i["date"] or far_past, reverse=True)
         kept = 0
         for item in fetched:
